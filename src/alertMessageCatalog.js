@@ -4,36 +4,30 @@ class AlertMessageCatalog {
   constructor() {
     this.messageBuilders = {
       A: (ctx) =>
-        [
-          "<b>Статус: A</b>",
-          "Повітряна тривога активна в усій області.",
-          "",
-          `Region: <b>${this.escapeHtml(ctx.regionName || "Unknown region")}</b>`,
-          `Region ID: <b>${this.escapeHtml(ctx.regionId)}</b>`,
-          `Source: ${this.escapeHtml(ctx.source || "api")}`,
-          `Time: ${this.escapeHtml(ctx.time)}`
-        ].join("\n"),
+        this.asBold(
+          `‼️ Повітряна тривога: ${this.escapeHtml(ctx.regionName || "Невідомий регіон")} ‼️`
+        ),
       N: (ctx) =>
-        [
-          "<b>Статус: N</b>",
-          "Немає інформації про повітряну тривогу.",
-          "",
-          `Region: <b>${this.escapeHtml(ctx.regionName || "Unknown region")}</b>`,
-          `Region ID: <b>${this.escapeHtml(ctx.regionId)}</b>`,
-          `Source: ${this.escapeHtml(ctx.source || "api")}`,
-          `Time: ${this.escapeHtml(ctx.time)}`
-        ].join("\n"),
+        this.asBold(
+          `✅ Відбій повітряної тривоги: ${this.escapeHtml(ctx.regionName || "Невідомий регіон")}`
+        ),
       P: (ctx) =>
-        [
-          "<b>Статус: P</b>",
-          "Часткова тривога в районах чи громадах.",
-          "",
-          `Region: <b>${this.escapeHtml(ctx.regionName || "Unknown region")}</b>`,
-          `Region ID: <b>${this.escapeHtml(ctx.regionId)}</b>`,
-          `Source: ${this.escapeHtml(ctx.source || "api")}`,
-          `Time: ${this.escapeHtml(ctx.time)}`
-        ].join("\n")
+        this.asBold(
+          [
+            "Статус: P",
+            "Часткова тривога в районах чи громадах.",
+            "",
+            `Region: ${this.escapeHtml(ctx.regionName || "Unknown region")}`,
+            `Region ID: ${this.escapeHtml(ctx.regionId)}`,
+            `Source: ${this.escapeHtml(ctx.source || "api")}`,
+            `Time: ${this.escapeHtml(ctx.time)}`
+          ].join("\n")
+        )
     };
+  }
+
+  asBold(text) {
+    return `<b>${text}</b>`;
   }
 
   escapeHtml(value) {
@@ -55,15 +49,17 @@ class AlertMessageCatalog {
       return builder(safeContext);
     }
 
-    return [
-      "<b>Air Raid Alert: UNKNOWN</b>",
-      `Received status: <b>${this.escapeHtml(normalizedStatus || "EMPTY")}</b>`,
-      "",
-      `Region: <b>${this.escapeHtml(safeContext.regionName || "Unknown region")}</b>`,
-      `Region ID: <b>${this.escapeHtml(safeContext.regionId)}</b>`,
-      `Source: ${this.escapeHtml(safeContext.source || "api")}`,
-      `Time: ${this.escapeHtml(safeContext.time)}`
-    ].join("\n");
+    return this.asBold(
+      [
+        "Air Raid Alert: UNKNOWN",
+        `Received status: ${this.escapeHtml(normalizedStatus || "EMPTY")}`,
+        "",
+        `Region: ${this.escapeHtml(safeContext.regionName || "Unknown region")}`,
+        `Region ID: ${this.escapeHtml(safeContext.regionId)}`,
+        `Source: ${this.escapeHtml(safeContext.source || "api")}`,
+        `Time: ${this.escapeHtml(safeContext.time)}`
+      ].join("\n")
+    );
   }
 }
 
