@@ -4,6 +4,7 @@ const { acquireRunLock } = require("./lock");
 const { Notifier } = require("./notifier");
 const { buildAlertsUrl, getWithRetry } = require("./httpClient");
 const { readLastState, writeLastState } = require("./stateStore");
+const { getRegionNameById } = require("./regionCatalog");
 const { logger } = require("./logger");
 
 async function runJob(config) {
@@ -54,6 +55,7 @@ async function runJob(config) {
       regionId: config.api.regionId,
       alertState: response.alertState
     };
+    const regionName = getRegionNameById(config.api.regionId);
     const lastState = await readLastState(config.job.stateFilePath);
 
     if (lastState && lastState.regionId === currentState.regionId && lastState.alertState === currentState.alertState) {
@@ -68,12 +70,14 @@ async function runJob(config) {
     logger.info("Alert state changed; sending notification", {
       previousState: lastState ? lastState.alertState : null,
       currentState: currentState.alertState,
-      regionId: currentState.regionId
+      regionId: currentState.regionId,
+      regionName
     });
 
     const notifier = new Notifier(config.telegram);
     await notifier.notify({
       regionId: config.api.regionId,
+      regionName,
       responseStatus: response.status,
       alertState: response.alertState,
       source: config.job.useStub ? "stub" : "api",

@@ -1,6 +1,7 @@
 "use strict";
 
 const { logger } = require("./logger");
+const { AlertMessageCatalog } = require("./alertMessageCatalog");
 
 class NotificationError extends Error {
   constructor(message, details = {}) {
@@ -36,50 +37,14 @@ function isNetworkError(error) {
   return error instanceof TypeError;
 }
 
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
-function formatStateDescription(state) {
-  if (state === "A") {
-    return "Air raid alert is active";
-  }
-
-  if (state === "N") {
-    return "No active air raid alert";
-  }
-
-  if (state === "P") {
-    return "Partial/unknown alert state";
-  }
-
-  return "Unknown alert state";
-}
-
-function buildTelegramMessage(payload) {
-  const state = payload.alertState || "UNKNOWN";
-  const lines = [
-    "<b>Alerts Update</b>",
-    `State: <b>${escapeHtml(state)}</b>`,
-    `Details: ${escapeHtml(formatStateDescription(state))}`,
-    `Region ID: ${escapeHtml(payload.regionId)}`,
-    `Source: ${escapeHtml(payload.source || "unknown")}`,
-    `Time: ${escapeHtml(new Date().toISOString())}`
-  ];
-
-  return lines.join("\n");
-}
-
 class Notifier {
   constructor(config) {
     this.config = config;
+    this.messageCatalog = new AlertMessageCatalog();
   }
 
   async notify(payload) {
-    const text = buildTelegramMessage(payload);
+    const text = this.messageCatalog.getMessageByStatus(payload.alertState, payload);
     await this.sendTelegramMessage(text);
     logger.info("Telegram notification delivered", {
       regionId: payload.regionId,
