@@ -157,6 +157,8 @@ function loadConfig() {
     job: {
       lockFilePath: path.resolve(process.cwd(), process.env.LOCK_FILE_PATH || ".alerts-job.lock"),
       stateFilePath: path.resolve(process.cwd(), process.env.STATE_FILE_PATH || ".alerts-last-state.json"),
+      alwaysSendTgMessage: readBoolean("ALWAYS_SEND_TG_MESSAGE", false),
+      treatPAsA: readBoolean("TREAT_P_AS_A", false),
       useStub,
       stubResponse: readAlertState("ALERTS_STUB_RESPONSE", "N")
     }

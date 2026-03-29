@@ -45,20 +45,30 @@ async function runJob(config) {
       });
     }
 
+    const normalizedAlertState =
+      config.job.treatPAsA && response.alertState === "P" ? "A" : response.alertState;
+
     logger.info("Alerts data fetched successfully", {
       status: response.status,
       regionId: config.api.regionId,
-      alertState: response.alertState
+      alertState: response.alertState,
+      normalizedAlertState,
+      treatPAsA: config.job.treatPAsA
     });
 
     const currentState = {
       regionId: config.api.regionId,
-      alertState: response.alertState
+      alertState: normalizedAlertState
     };
     const regionName = getRegionNameById(config.api.regionId);
     const lastState = await readLastState(config.job.stateFilePath);
+    const isSameState =
+      Boolean(lastState) &&
+      lastState.regionId === currentState.regionId &&
+      lastState.alertState === currentState.alertState;
+    const forceNotify = config.job.alwaysSendTgMessage;
 
-    if (lastState && lastState.regionId === currentState.regionId && lastState.alertState === currentState.alertState) {
+    if (isSameState && !forceNotify) {
       logger.info("Alert state unchanged; notification skipped", {
         regionId: currentState.regionId,
         alertState: currentState.alertState,
@@ -67,11 +77,20 @@ async function runJob(config) {
       return { skipped: false, notified: false, changed: false };
     }
 
-    logger.info("Alert state changed; sending notification", {
+    if (isSameState && forceNotify) {
+      logger.info("Alert state unchanged but forced notification is enabled", {
+        regionId: currentState.regionId,
+        alertState: currentState.alertState
+      });
+    }
+
+    logger.info("Sending notification", {
       previousState: lastState ? lastState.alertState : null,
       currentState: currentState.alertState,
       regionId: currentState.regionId,
-      regionName
+      regionName,
+      forced: forceNotify,
+      rawAlertState: response.alertState
     });
 
     const notifier = new Notifier(config.telegram);
@@ -79,7 +98,8 @@ async function runJob(config) {
       regionId: config.api.regionId,
       regionName,
       responseStatus: response.status,
-      alertState: response.alertState,
+      alertState: currentState.alertState,
+      rawAlertState: response.alertState,
       source: config.job.useStub ? "stub" : "api",
       rawBody: response.rawBody
     });
@@ -90,7 +110,7 @@ async function runJob(config) {
       stateFilePath: config.job.stateFilePath
     });
 
-    return { skipped: false, notified: true, changed: true };
+    return { skipped: false, notified: true, changed: !isSameState };
   } finally {
     await releaseLock();
   }

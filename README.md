@@ -28,6 +28,8 @@ One-shot Node.js job that fetches active air raid alert state for a region and t
 - `TG_CHAT_ID` (required): target chat ID (user/group/channel).
 - `ALERTS_USE_STUB` (optional): if `true`, skips external API request and uses stub response. Default `false`.
 - `ALERTS_STUB_RESPONSE` (optional): stub alert state char (`N`, `A`, or `P`). Default `N`.
+- `ALWAYS_SEND_TG_MESSAGE` (optional): if `true`, always sends Telegram message and skips diff check. Default `false`.
+- `TREAT_P_AS_A` (optional): if `true`, converts incoming `P` status to `A` before diff check and notification template selection. Default `false`.
 - `HTTP_TIMEOUT_MS` (optional): request timeout in milliseconds, default `10000`.
 - `HTTP_MAX_RETRIES` (optional): number of retries for transient failures, default `2`.
 - `HTTP_RETRY_BASE_DELAY_MS` (optional): linear backoff base delay in milliseconds, default `500`.
@@ -59,5 +61,7 @@ mkdir -p logs
 - For active development without consuming API limits, set `ALERTS_USE_STUB=true`.
 - Notifications are sent via Telegram Bot API `sendMessage`.
 - Notification is sent only when current state differs from the previously stored state.
+- Set `ALWAYS_SEND_TG_MESSAGE=true` to bypass the diff check and notify on every run.
+- Set `TREAT_P_AS_A=true` if your business rule requires treating partial alert (`P`) as full alert (`A`).
 - The job uses a lock file to avoid overlapping runs.
 - Logs are emitted as JSON lines for easier ingestion in production logging systems.
