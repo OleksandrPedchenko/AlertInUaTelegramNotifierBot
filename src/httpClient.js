@@ -92,6 +92,7 @@ async function getWithRetry({
   timeoutMs,
   maxRetries,
   retryBaseDelayMs,
+  ifModifiedSince,
   responseHandler
 }) {
   const maxAttempts = maxRetries + 1;
@@ -103,20 +104,53 @@ async function getWithRetry({
 
       let response;
       try {
+        const headers = {
+          Accept: "text/plain, application/json",
+          Authorization: `Bearer ${token}`,
+          "User-Agent": "alerts-tg-bot/1.0"
+        };
+
+        if (ifModifiedSince) {
+          headers["If-Modified-Since"] = ifModifiedSince;
+          logger.info("Sending request with If-Modified-Since header", {
+            url,
+            ifModifiedSince
+          });
+        } else {
+          logger.info("Sending request without If-Modified-Since header", { url });
+        }
+
         response = await fetch(url, {
           method: "GET",
-          headers: {
-            Accept: "text/plain, application/json",
-            Authorization: `Bearer ${token}`,
-            "User-Agent": "alerts-tg-bot/1.0"
-          },
+          headers,
           signal: controller.signal
         });
       } finally {
         clearTimeout(timeoutId);
       }
 
+      if (response.status === 304) {
+        const lastModifiedHeader = response.headers.get("last-modified") || null;
+        logger.info("Received 304 Not Modified response", {
+          url,
+          lastModified: lastModifiedHeader
+        });
+
+        return {
+          status: response.status,
+          alertState: null,
+          rawBody: "",
+          lastModified: lastModifiedHeader
+        };
+      }
+
       const responseText = await response.text();
+      const lastModifiedHeader = response.headers.get("last-modified") || null;
+      logger.info("Received HTTP response", {
+        url,
+        status: response.status,
+        lastModified: lastModifiedHeader
+      });
 
       if (!response.ok) {
         throw new HttpRequestError(`HTTP request failed with status ${response.status}`, {
@@ -142,7 +176,8 @@ async function getWithRetry({
       return {
         status: response.status,
         alertState,
-        rawBody: responseText
+        rawBody: responseText,
+        lastModified: lastModifiedHeader
       };
     } catch (error) {
       const isTimeout = error && error.name === "AbortError";

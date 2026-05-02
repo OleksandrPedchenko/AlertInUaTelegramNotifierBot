@@ -12,6 +12,7 @@ function normalizeStateRecord(candidate) {
 
   const regionId = Number(candidate.regionId);
   const alertState = String(candidate.alertState || "").trim().toUpperCase();
+  const lastModified = candidate.lastModified ? String(candidate.lastModified).trim() : null;
 
   if (!Number.isInteger(regionId) || regionId < 1) {
     return null;
@@ -23,7 +24,8 @@ function normalizeStateRecord(candidate) {
 
   return {
     regionId,
-    alertState
+    alertState,
+    lastModified
   };
 }
 
@@ -58,6 +60,7 @@ async function writeLastState(filePath, state) {
   const payload = JSON.stringify(
     {
       ...normalized,
+      lastModified: normalized.lastModified || null,
       updatedAt: new Date().toISOString()
     },
     null,
